@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,8 +27,8 @@ import java.util.UUID;
 public class StudentService {
 
    private final StudentRepository studentRepository;
-
    private final DepartmentRepository departmentRepository;
+   private final Tika tika;
 
    @Transactional
    public StudentResponse saveStudent(StudentRequest request, MultipartFile photo) throws IOException {
@@ -43,7 +41,6 @@ public class StudentService {
       }
 
       //Validate the actual content if it is an image
-      Tika tika = new Tika();
       String detectedType = tika.detect(photo.getInputStream());
 
       if (!detectedType.startsWith("image/")) {
