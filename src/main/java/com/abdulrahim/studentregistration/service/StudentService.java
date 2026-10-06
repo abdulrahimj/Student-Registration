@@ -9,6 +9,7 @@ import com.abdulrahim.studentregistration.exception.ResourceNotFoundException;
 import com.abdulrahim.studentregistration.repository.DepartmentRepository;
 import com.abdulrahim.studentregistration.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.tika.Tika;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,11 +35,19 @@ public class StudentService {
    @Transactional
    public StudentResponse saveStudent(StudentRequest request, MultipartFile photo) throws IOException {
 
-      //Validate content type if it is an image
+      //Validate content type if it is an image type
       String contentType = photo.getContentType();
 
       if (contentType == null || !contentType.startsWith("image/")) {
          throw new IllegalArgumentException("Only image files are allowed");
+      }
+
+      //Validate the actual content if it is an image
+      Tika tika = new Tika();
+      String detectedType = tika.detect(photo.getInputStream());
+
+      if (!detectedType.startsWith("image/")) {
+         throw new IllegalArgumentException("Upload file is not a valid image");
       }
 
       //find department
