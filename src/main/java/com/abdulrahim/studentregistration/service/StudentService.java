@@ -28,24 +28,12 @@ public class StudentService {
 
    private final StudentRepository studentRepository;
    private final DepartmentRepository departmentRepository;
-   private final Tika tika;
+   private final StudentFileValidationService studentFileValidationService;
 
    @Transactional
    public StudentResponse saveStudent(StudentRequest request, MultipartFile photo) throws IOException {
 
-      //Validate content type if it is an image type
-      String contentType = photo.getContentType();
-
-      if (contentType == null || !contentType.startsWith("image/")) {
-         throw new IllegalArgumentException("Only image files are allowed");
-      }
-
-      //Validate the actual content if it is an image
-      String detectedType = tika.detect(photo.getInputStream());
-
-      if (!detectedType.startsWith("image/")) {
-         throw new IllegalArgumentException("Upload file is not a valid image");
-      }
+      studentFileValidationService.validatePhoto(photo);
 
       //find department
       Department department = departmentRepository
