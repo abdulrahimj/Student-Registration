@@ -13,7 +13,7 @@ public class StudentFileValidationService {
 
    private final Tika tika;
 
-   public void validatePhoto(MultipartFile photo) {
+   public String validatePhoto(MultipartFile photo) {
 
       //Validate content type if it is an image type
       String contentType = photo.getContentType();
@@ -26,9 +26,14 @@ public class StudentFileValidationService {
          //Validate the actual content if it is an image
          String detectedType = tika.detect(photo.getInputStream());
 
-         if (!detectedType.startsWith("image/")) {
-            throw new IllegalArgumentException("Upload file is not a valid image");
+         if (!detectedType.startsWith("image/")
+            && !detectedType.equals("image/jpeg")
+            && !detectedType.equals("image/webp")) {
+
+            throw new IllegalArgumentException("Only PNG, JPEG, and Webp images are allowed");
          }
+
+         return detectedType;
 
       } catch (IOException e) {
          throw new IllegalArgumentException("Could not read uploaded file");
