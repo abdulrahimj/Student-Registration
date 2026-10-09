@@ -31,7 +31,7 @@ public class StudentService {
    public StudentResponse saveStudent(StudentRequest request, MultipartFile photo) {
 
       //Validate photo
-      studentFileValidationService.validatePhoto(photo);
+      String detectedType = studentFileValidationService.validatePhoto(photo);
 
       //find department
       Department department = departmentRepository
@@ -39,7 +39,7 @@ public class StudentService {
               .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
 
       //Store the image
-      String photoPath = studentFileStorageService.storePhoto(photo);
+      String photoPath = studentFileStorageService.storePhoto(photo, detectedType);
 
       try {
          //create an empty student

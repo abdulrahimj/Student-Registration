@@ -12,19 +12,19 @@ import java.util.UUID;
 @Service
 public class StudentFileStorageService {
 
-   public String storePhoto(MultipartFile photo) {
+   public String storePhoto(MultipartFile photo, String detectedType) {
       try {
          Path uploadPath = Paths.get("uploads/students");
          Files.createDirectories(uploadPath);
 
-         String originalFilename = photo.getOriginalFilename();
-         assert originalFilename != null;
-         String fileExtension = "";
-         int dotIndex = originalFilename.lastIndexOf(".");
-
-         if (dotIndex != -1) {
-            fileExtension = originalFilename.substring(dotIndex);
-         }
+         String fileExtension = switch (detectedType) {
+            case "image/png" -> ".png";
+            case "image/jpeg" -> ".jpg";
+            case "image/webp" -> ".webp";
+            default -> throw new IllegalArgumentException(
+                    "Unsupported image type"
+            );
+         };
 
          String fileName = UUID.randomUUID() + fileExtension;
          Path filePath = uploadPath.resolve(fileName);

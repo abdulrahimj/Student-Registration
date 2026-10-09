@@ -26,7 +26,7 @@ public class StudentFileValidationService {
          //Validate the actual content if it is an image
          String detectedType = tika.detect(photo.getInputStream());
 
-         if (!detectedType.startsWith("image/")
+         if (!detectedType.startsWith("image/png")
             && !detectedType.equals("image/jpeg")
             && !detectedType.equals("image/webp")) {
 
