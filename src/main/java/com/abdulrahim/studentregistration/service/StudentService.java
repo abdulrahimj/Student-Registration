@@ -9,7 +9,6 @@ import com.abdulrahim.studentregistration.exception.ResourceNotFoundException;
 import com.abdulrahim.studentregistration.repository.DepartmentRepository;
 import com.abdulrahim.studentregistration.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
-import org.apache.tika.Tika;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,10 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +25,12 @@ public class StudentService {
    private final StudentRepository studentRepository;
    private final DepartmentRepository departmentRepository;
    private final StudentFileValidationService studentFileValidationService;
+   private final StudentFileStorageService studentFileStorageService;
 
    @Transactional
-   public StudentResponse saveStudent(StudentRequest request, MultipartFile photo) throws IOException {
+   public StudentResponse saveStudent(StudentRequest request, MultipartFile photo) {
 
+      //Validate photo
       studentFileValidationService.validatePhoto(photo);
 
       //find department
@@ -40,51 +38,52 @@ public class StudentService {
               .findById(request.getDepartmentId())
               .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
 
-      //create an empty student
-      Student student = new Student();
+      //Store the image
+      String photoPath = studentFileStorageService.storePhoto(photo);
 
-      //copy requestDTO and convert to entity
-      student.setName(request.getName());
-      student.setAge(request.getAge());
-      student.setEmail(request.getEmail());
-      //set the relationship
-      student.setDepartment(department);
+      try {
+         //create an empty student
+         Student student = new Student();
 
-      Path uploadPath = Paths.get("uploads/students");
-      Files.createDirectories(uploadPath);
+         //copy requestDTO and convert to entity
+         student.setName(request.getName());
+         student.setAge(request.getAge());
+         student.setEmail(request.getEmail());
+         student.setDepartment(department);
+         student.setPhotoPath(photoPath);
 
-      String originalFilename = photo.getOriginalFilename();
-      assert originalFilename != null;
-      String fileExtension = "";
-      int dotIndex = originalFilename.lastIndexOf(".");
+         //Force Hibernate to sync with the DB now and save the entity
+         Student savedEntity = studentRepository.saveAndFlush(student);
 
-      if (dotIndex != -1) {
-         fileExtension = originalFilename.substring(dotIndex);
+         //create responseDTO from entity
+         StudentResponse response = new StudentResponse();
+         response.setId(savedEntity.getId());
+         response.setName(savedEntity.getName());
+         response.setAge(savedEntity.getAge());
+         response.setEmail(savedEntity.getEmail());
+         response.setDepartmentName(savedEntity.getDepartment().getName());
+         response.setPhotoPath(
+                 "/uploads/students/" +
+                         Paths.get(savedEntity.getPhotoPath()).getFileName()
+         );
+
+         return response;
+
+      } catch (RuntimeException e) {
+         //If saving student fails, remove the stored image
+         try {
+            studentFileStorageService.deletePhoto(photoPath);
+         } catch (RuntimeException cleanupException) {
+            e.addSuppressed(cleanupException);
+         }
+
+         //Preserve the original exception
+         throw e;
       }
 
-      String fileName = UUID.randomUUID() + fileExtension;
-      Path filePath = uploadPath.resolve(fileName);
-      photo.transferTo(filePath);
 
-      //connect the file to the student record
-      student.setPhotoPath(filePath.toString());
 
-      //save the entity
-      Student savedEntity = studentRepository.save(student);
 
-      //create responseDTO from entity
-      StudentResponse response = new StudentResponse();
-      response.setId(savedEntity.getId());
-      response.setName(savedEntity.getName());
-      response.setAge(savedEntity.getAge());
-      response.setEmail(savedEntity.getEmail());
-      response.setDepartmentName(savedEntity.getDepartment().getName());
-      response.setPhotoPath(
-              "/uploads/students/" +
-                      Paths.get(savedEntity.getPhotoPath()).getFileName()
-      );
-
-      return response;
    }
 
    public PageResponse<StudentResponse> getAllStudents(Pageable pageable) {
