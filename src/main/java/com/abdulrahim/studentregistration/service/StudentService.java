@@ -9,15 +9,19 @@ import com.abdulrahim.studentregistration.exception.ResourceNotFoundException;
 import com.abdulrahim.studentregistration.repository.DepartmentRepository;
 import com.abdulrahim.studentregistration.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudentService {
@@ -80,10 +84,6 @@ public class StudentService {
          //Preserve the original exception
          throw e;
       }
-
-
-
-
    }
 
    public PageResponse<StudentResponse> getAllStudents(Pageable pageable) {
@@ -111,5 +111,45 @@ public class StudentService {
       pageResponse.setLast(responses.isLast());
 
       return pageResponse;
+   }
+
+   @Transactional
+   public void deleteStudent(Long studentId) {
+
+      //find student
+      Student student = studentRepository.findById(studentId)
+              .orElseThrow(() ->
+                      new ResourceNotFoundException(
+                              "Student not found with id: " + studentId
+                      )
+              );
+
+      //get the photo path before deleting
+      String photoPath = student.getPhotoPath();
+
+      //delete the student from DB
+      studentRepository.delete(student);
+
+      //schedule photo deletion after the DB transaction commits
+      assert photoPath != null;
+      if (!photoPath.isBlank()) {
+
+         TransactionSynchronizationManager.registerSynchronization(
+                 new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCommit() {
+                       try {
+                          studentFileStorageService.deletePhoto(photoPath);
+                       } catch (RuntimeException ex) {
+                          log.error("Student was deleted, but photo cleanup failed: {}",
+                                  photoPath,
+                                  ex
+                          );
+                       }
+                    }
+                 }
+         );
+      }
    }
 }

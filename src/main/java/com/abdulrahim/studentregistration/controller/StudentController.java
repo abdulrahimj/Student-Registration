@@ -41,4 +41,12 @@ public class StudentController {
       PageResponse<StudentResponse> responses = studentService.getAllStudents(pageable);
       return ResponseEntity.ok(responses);
    }
+
+   @DeleteMapping("/{id}")
+   public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+      studentService.deleteStudent(id);
+      return ResponseEntity
+              .noContent()
+              .build();
+   }
 }

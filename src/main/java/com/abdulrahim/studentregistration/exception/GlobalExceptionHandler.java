@@ -70,6 +70,7 @@ public class GlobalExceptionHandler {
    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(
            MaxUploadSizeExceededException ex) {
 
+      System.out.println("CUSTOM UPLOAD SIZE HANDLER EXECUTED");
       ErrorResponse error = new ErrorResponse(
               HttpStatus.CONTENT_TOO_LARGE.value(),
               "Upload exceeds the allowed size limit",
