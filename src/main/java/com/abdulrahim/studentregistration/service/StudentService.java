@@ -38,9 +38,7 @@ public class StudentService {
       String detectedType = studentFileValidationService.validatePhoto(photo);
 
       //find department
-      Department department = departmentRepository
-              .findById(request.getDepartmentId())
-              .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+      Department department = findDepartment(request);
 
       //Store the image
       String photoPath = studentFileStorageService.storePhoto(photo, detectedType);
@@ -117,12 +115,7 @@ public class StudentService {
    public void deleteStudent(Long studentId) {
 
       //find student
-      Student student = studentRepository.findById(studentId)
-              .orElseThrow(() ->
-                      new ResourceNotFoundException(
-                              "Student not found with id: " + studentId
-                      )
-              );
+      Student student = findStudent(studentId);
 
       //get the photo path before deleting
       String photoPath = student.getPhotoPath();
@@ -131,8 +124,8 @@ public class StudentService {
       studentRepository.delete(student);
 
       //schedule photo deletion after the DB transaction commits
-      assert photoPath != null;
-      if (!photoPath.isBlank()) {
+      //assert photoPath != null;
+      if (photoPath != null && !photoPath.isBlank()) {
 
          TransactionSynchronizationManager.registerSynchronization(
                  new TransactionSynchronization() {
@@ -151,5 +144,56 @@ public class StudentService {
                  }
          );
       }
+   }
+
+   @Transactional
+   public StudentResponse updateStudent(Long studentId, StudentRequest request) {
+
+      //find student
+      Student student = findStudent(studentId);
+
+      //find the requested department
+      Department department = findDepartment(request);
+
+      //update the student details
+      student.setName(request.getName());
+      student.setAge(request.getAge());
+      student.setEmail(request.getEmail());
+      student.setDepartment(department);
+
+      //save the updated student
+      Student updatedStudent = studentRepository.save(student);
+
+      //return updated data
+      return new StudentResponse(
+              updatedStudent.getId(),
+              updatedStudent.getName(),
+              updatedStudent.getAge(),
+              updatedStudent.getEmail(),
+              updatedStudent.getDepartment().getName(),
+              updatedStudent.getPhotoPath()
+      );
+   }
+
+   //HELPER METHOD
+   public Student findStudent(Long studentId) {
+
+      return studentRepository.findById(studentId)
+              .orElseThrow(() ->
+                      new ResourceNotFoundException(
+                              "Student not found with id: " + studentId
+                      )
+              );
+   }
+
+   //HELPER METHOD
+   public Department findDepartment(StudentRequest request) {
+
+      return departmentRepository.findById(request.getDepartmentId())
+              .orElseThrow(() ->
+                      new ResourceNotFoundException(
+                              "Department not found with id: " + request.getDepartmentId()
+                      )
+              );
    }
 }
