@@ -175,7 +175,9 @@ public class StudentService {
       );
    }
 
-   //HELPER METHOD
+   //============================================
+   //HELPER METHODS
+   //============================================
    public Student findStudent(Long studentId) {
 
       return studentRepository.findById(studentId)
@@ -186,7 +188,6 @@ public class StudentService {
               );
    }
 
-   //HELPER METHOD
    public Department findDepartment(StudentRequest request) {
 
       return departmentRepository.findById(request.getDepartmentId())
