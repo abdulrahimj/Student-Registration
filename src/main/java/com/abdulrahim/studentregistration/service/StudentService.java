@@ -1,6 +1,7 @@
 package com.abdulrahim.studentregistration.service;
 
 import com.abdulrahim.studentregistration.dto.PageResponse;
+import com.abdulrahim.studentregistration.dto.StudentPatchRequest;
 import com.abdulrahim.studentregistration.dto.StudentRequest;
 import com.abdulrahim.studentregistration.dto.StudentResponse;
 import com.abdulrahim.studentregistration.entity.Department;
@@ -12,11 +13,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -38,7 +41,7 @@ public class StudentService {
       String detectedType = studentFileValidationService.validatePhoto(photo);
 
       //find department
-      Department department = findDepartment(request);
+      Department department = findDepartment(request.getDepartmentId());
 
       //Store the image
       String photoPath = studentFileStorageService.storePhoto(photo, detectedType);
@@ -153,7 +156,7 @@ public class StudentService {
       Student student = findStudent(studentId);
 
       //find the requested department
-      Department department = findDepartment(request);
+      Department department = findDepartment(request.getDepartmentId());
 
       //update the student details
       student.setName(request.getName());
@@ -165,6 +168,67 @@ public class StudentService {
       Student updatedStudent = studentRepository.save(student);
 
       //return updated data
+      return new StudentResponse(
+              updatedStudent.getId(),
+              updatedStudent.getName(),
+              updatedStudent.getAge(),
+              updatedStudent.getEmail(),
+              updatedStudent.getDepartment().getName(),
+              updatedStudent.getPhotoPath()
+      );
+   }
+
+   @Transactional
+   public StudentResponse patchStudent(Long studentId, StudentPatchRequest request) {
+
+      Student student = findStudent(studentId);
+
+      //update name only if the client provides it
+      if (request.name() != null) {
+         if (request.name().isBlank()) {
+            throw new ResponseStatusException(
+                     HttpStatus.BAD_REQUEST,
+                    "Name must not be blank");
+         }
+
+         student.setName(request.name());
+      }
+
+      //update age only if the client provides it
+      if (request.age() != null) {
+         student.setAge(request.age());
+      }
+
+      //update email only if the client provides it
+      if (request.email() != null) {
+         if (request.email().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Email must not be blank");
+         }
+
+         student.setEmail(request.email());
+      }
+
+      //change department only if a department ID was provided
+      if (request.departmentId() != null) {
+         Department department = findDepartment(request.departmentId());
+         student.setDepartment(department);
+      }
+
+      //Reject an empty PATCH request
+      if (request.name() == null
+              && request.age() == null
+              && request.email() == null
+              && request.departmentId() == null) {
+
+         throw new ResponseStatusException(
+                 HttpStatus.BAD_REQUEST,
+                 "At least one field must be provided");
+      }
+
+      Student updatedStudent = studentRepository.save(student);
+
       return new StudentResponse(
               updatedStudent.getId(),
               updatedStudent.getName(),
@@ -188,12 +252,12 @@ public class StudentService {
               );
    }
 
-   public Department findDepartment(StudentRequest request) {
+   public Department findDepartment(Long departmentId) {
 
-      return departmentRepository.findById(request.getDepartmentId())
+      return departmentRepository.findById(departmentId)
               .orElseThrow(() ->
                       new ResourceNotFoundException(
-                              "Department not found with id: " + request.getDepartmentId()
+                              "Department not found with id: " + departmentId
                       )
               );
    }
