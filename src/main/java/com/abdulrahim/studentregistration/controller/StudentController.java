@@ -1,6 +1,7 @@
 package com.abdulrahim.studentregistration.controller;
 
 import com.abdulrahim.studentregistration.dto.PageResponse;
+import com.abdulrahim.studentregistration.dto.StudentPatchRequest;
 import com.abdulrahim.studentregistration.dto.StudentRequest;
 import com.abdulrahim.studentregistration.dto.StudentResponse;
 import com.abdulrahim.studentregistration.service.StudentService;
@@ -56,6 +57,16 @@ public class StudentController {
            @Valid @RequestBody StudentRequest request) {
 
       StudentResponse response = studentService.updateStudent(id,request);
+
+      return ResponseEntity.ok(response);
+   }
+
+   @PatchMapping("/{id}")
+   public ResponseEntity<StudentResponse> patchStudent(
+           @PathVariable Long id,
+           @Valid @RequestBody StudentPatchRequest request) {
+
+      StudentResponse response = studentService.patchStudent(id, request);
 
       return ResponseEntity.ok(response);
    }

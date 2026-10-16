@@ -9,6 +9,7 @@ import com.abdulrahim.studentregistration.entity.Student;
 import com.abdulrahim.studentregistration.exception.ResourceNotFoundException;
 import com.abdulrahim.studentregistration.repository.DepartmentRepository;
 import com.abdulrahim.studentregistration.repository.StudentRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,7 +22,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 
 @Slf4j
@@ -179,7 +179,7 @@ public class StudentService {
    }
 
    @Transactional
-   public StudentResponse patchStudent(Long studentId, StudentPatchRequest request) {
+   public StudentResponse patchStudent(Long studentId, @Valid StudentPatchRequest request) {
 
       Student student = findStudent(studentId);
 

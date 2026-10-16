@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Positive;
 
 public record StudentPatchRequest(
 
-        @NotBlank
         String name,
 
         @Min(16)
