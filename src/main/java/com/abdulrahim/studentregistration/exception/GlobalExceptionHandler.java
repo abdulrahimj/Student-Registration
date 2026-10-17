@@ -1,5 +1,6 @@
 package com.abdulrahim.studentregistration.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -79,6 +81,22 @@ public class GlobalExceptionHandler {
 
       return ResponseEntity
               .status(HttpStatus.CONTENT_TOO_LARGE)
+              .body(error);
+   }
+
+   @ExceptionHandler(Exception.class)
+   public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception ex) {
+
+      log.error("Unexpected error occurred", ex);
+
+      ErrorResponse error = new ErrorResponse(
+              HttpStatus.INTERNAL_SERVER_ERROR.value(),
+              "An unexpected error occurred",
+              LocalDateTime.now()
+      );
+
+      return ResponseEntity
+              .status(HttpStatus.INTERNAL_SERVER_ERROR)
               .body(error);
    }
 }
